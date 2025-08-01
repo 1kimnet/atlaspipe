@@ -1,0 +1,36 @@
+# --- Normalize all text files ---
+* text=auto
+
+# --- Python & YAML ---
+*.py   text eol=lf
+*.yml  text eol=lf
+*.yaml text eol=lf
+
+# --- Markdown & configs ---
+*.md       text eol=lf
+*.ini      text eol=lf
+*.cfg      text eol=lf
+*.toml     text eol=lf
+*.txt      text eol=lf
+
+# --- Binary geodata & scratch files ---
+*.gdb/*       binary
+*.gdb         binary
+*.zip         binary
+*.7z          binary
+*.gpkg        binary
+*.shp         binary
+*.dbf         binary
+*.shx         binary
+*.sde         binary
+*.mdb         binary
+*.kml         binary
+
+# --- Logs ---
+*.log         text eol=lf
+*.bak         binary
+
+# --- Ignore lock files and OS noise ---
+*.lock        text
+.DS_Store     binary
+Thumbs.db     binary
