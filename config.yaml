@@ -1,0 +1,250 @@
+# ETL Pipeline Configuration
+# Based on Swedish government data sources
+
+# =============================================================================
+# WORKSPACE CONFIGURATION
+# =============================================================================
+workspace:
+  scratch_gdb: "C:/arcgisdata/_staging/etl_temp.gdb"
+  output_sde: "C:/connections/production.sde"
+  spatial_reference: 3006  # SWEREF 99 TM
+  bbox: [13.0, 55.0, 14.0, 56.0]  # Default processing area
+
+# =============================================================================
+# LOGGING CONFIGURATION
+# =============================================================================
+logging:
+  level: "INFO"
+  file: "C:/logs/etl_pipeline.log"
+  console: true
+
+# =============================================================================
+# DATA SOURCES
+# =============================================================================
+sources:
+
+  # ---------------------------------------------------------------------------
+  # SGU - Sveriges geologiska undersökning (OGC API Features)
+  # ---------------------------------------------------------------------------
+  - name: "SGU Erosion"
+    authority: "SGU"
+    type: "ogc_api"
+    url: "https://api.sgu.se/oppnadata/stranderosion-kust/ogc/features/v1"
+    enabled: true
+    output_name: "sgu_erosion"
+    collections: ["aktiv-erosion"]
+    additional_params:
+      limit: 1000
+      bbox-crs: "http://www.opengis.net/def/crs/EPSG/0/3006"
+
+  - name: "SGU Brunnar"
+    authority: "SGU"
+    type: "ogc_api"
+    url: "https://api.sgu.se/oppnadata/brunnar/ogc/features/v1"
+    enabled: true
+    output_name: "sgu_brunnar"
+    collections: ["brunnar"]
+    additional_params:
+      limit: 1000
+      bbox-crs: "http://www.opengis.net/def/crs/EPSG/0/3006"
+
+  - name: "SGU Grus Krossberg"
+    authority: "SGU"
+    type: "ogc_api"
+    url: "https://api.sgu.se/oppnadata/grus-krossberg/ogc/features/v1"
+    enabled: true
+    output_name: "sgu_grus"
+    collections: ["grus-grus", "grus-berg", "grus-moran"]
+    additional_params:
+      limit: 1000
+      bbox-crs: "http://www.opengis.net/def/crs/EPSG/0/3006"
+
+  # ---------------------------------------------------------------------------
+  # LST - Länsstyrelsen (ArcGIS REST Services)
+  # ---------------------------------------------------------------------------
+  - name: "LST Riksintressen"
+    authority: "LST"
+    type: "arcgis_rest"
+    url: "https://ext-geodata-nationella.lansstyrelsen.se/arcgis/rest/services/LST/lst_lst_riksintressen_4/MapServer"
+    enabled: true
+    output_name: "lst_riksintressen"
+    layers: [0]
+    additional_params:
+      f: "geojson"
+      outFields: "*"
+      where: "1=1"
+
+  - name: "LST Riksintressen Vindbruk"
+    authority: "LST"
+    type: "arcgis_rest"
+    url: "https://ext-geodata-nationella.lansstyrelsen.se/arcgis/rest/services/LST/lst_lst_riksintressen_vindbruk_4/MapServer"
+    enabled: true
+    output_name: "lst_vindbruk"
+    layers: [0, 1, 2, 3, 4]  # All layers if not specified in original
+    additional_params:
+      f: "geojson"
+      outFields: "*"
+
+  # ---------------------------------------------------------------------------
+  # LSTD - Länsstyrelsen Dalarna (Multiple ArcGIS REST Services)
+  # ---------------------------------------------------------------------------
+  - name: "LstD Friluftsliv"
+    authority: "LSTD"
+    type: "arcgis_rest"
+    url: "https://ext-geodata-lokala-visning.lansstyrelsen.se/arcgis/rest/services/LSTD/LstD_GI_Friluftsliv_EXT/MapServer"
+    enabled: true
+    output_name: "lstd_friluftsliv"
+    layers: [0, 1, 2, 3, 4]
+    additional_params:
+      f: "geojson"
+      outFields: "*"
+
+  - name: "LstD Levande sjöar och vattendrag"
+    authority: "LSTD"
+    type: "arcgis_rest"
+    url: "https://ext-geodata-lokala-visning.lansstyrelsen.se/arcgis/rest/services/LSTD/LstD_GI_Levande_sjoar_och_vattendrag_EXT/MapServer"
+    enabled: true
+    output_name: "lstd_vattendrag"
+    layers: [2, 3, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]
+    additional_params:
+      f: "geojson"
+      outFields: "*"
+
+  # ---------------------------------------------------------------------------
+  # SJV - Jordbruksverket (Mixed REST/WFS)
+  # ---------------------------------------------------------------------------
+  - name: "SJV Jordbruksblock 2024"
+    authority: "SJV"
+    type: "arcgis_rest"
+    url: "https://ext-geodata-nationella.lansstyrelsen.se/arcgis/rest/services/SJV/lst_sjv_fak04jbb/MapServer"
+    enabled: true
+    output_name: "sjv_jordbruksblock"
+    layers: [18]
+    additional_params:
+      f: "geojson"
+      outFields: "*"
+
+  - name: "SJV Jordbruksskiften"
+    authority: "SJV"
+    type: "rest"
+    url: "https://epub.sjv.se/inspire/inspire/wfs"
+    enabled: true
+    output_name: "sjv_skiften"
+    additional_params:
+      service: "WFS"
+      request: "GetFeature"
+      typeName: "inspire:senaste_arslager_skifte"
+      outputFormat: "application/json"
+
+  - name: "SJV Ängs- och betesmarksinventeringen"
+    authority: "SJV"
+    type: "arcgis_rest"
+    url: "https://ext-geodata-nationella.lansstyrelsen.se/arcgis/rest/services/SJV/lst_sjv_fak04ovr/MapServer"
+    enabled: true
+    output_name: "sjv_betesmark"
+    layers: [4, 5]
+    additional_params:
+      f: "geojson"
+      outFields: "*"
+
+  # ---------------------------------------------------------------------------
+  # TRV - Trafikverket (ArcGIS REST)
+  # ---------------------------------------------------------------------------
+  - name: "TRV Vägar"
+    authority: "TRV"
+    type: "arcgis_rest"
+    url: "https://ext-geodata-nationella.lansstyrelsen.se/arcgis/rest/services/TV/lst_tv_fak01/MapServer"
+    enabled: true
+    output_name: "trv_vagar"
+    layers: [0, 1, 2, 3, 4, 5, 6, 7]
+    additional_params:
+      f: "geojson"
+      outFields: "*"
+
+  # ---------------------------------------------------------------------------
+  # SKS - Skogsstyrelsen (ArcGIS REST Services)
+  # ---------------------------------------------------------------------------
+  - name: "SKS Biotopskydd"
+    authority: "SKS"
+    type: "arcgis_rest"
+    url: "https://geodpags.skogsstyrelsen.se/arcgis/rest/services/Geodataportal/GeodataportalVisaBiotopskydd/MapServer"
+    enabled: true
+    output_name: "sks_biotopskydd"
+    layers: [0]  # Assuming layer 0 if not specified
+    additional_params:
+      f: "geojson"
+      outFields: "*"
+
+  - name: "SKS Nyckelbiotoper"
+    authority: "SKS"
+    type: "arcgis_rest"
+    url: "https://geodpags.skogsstyrelsen.se/arcgis/rest/services/Geodataportal/GeodataportalVisaNyckelbiotop/MapServer"
+    enabled: true
+    output_name: "sks_nyckelbiotoper"
+    layers: [0]
+    additional_params:
+      f: "geojson"
+      outFields: "*"
+
+  # ---------------------------------------------------------------------------
+  # FILE DOWNLOADS (HTTP)
+  # ---------------------------------------------------------------------------
+  - name: "FM Rikstäckande geodata"
+    authority: "FM"
+    type: "http"
+    url: "https://www.forsvarsmakten.se/siteassets/2-om-forsvarsmakten/samhallsplanering/geodata/rikstackande-geodata-forsvarsmakten.zip"
+    enabled: true
+    output_name: "fm_geodata"
+    format: "shapefile_zip"
+
+  - name: "RAA Byggnader Sverige"
+    authority: "RAA"
+    type: "http"
+    url: "https://pub.raa.se/nedladdning/datauttag/bebyggelse/byggnader_kulthist_inv/byggnader_sverige.gpkg"
+    enabled: true
+    output_name: "raa_byggnader"
+    format: "gpkg"
+    include_layers: ["byggnader_sverige_point"]
+
+  - name: "SGI Skreddatabas"
+    authority: "SGI"
+    type: "http"
+    url: "https://gis.sgi.se/dokument/geodatasezip/SGI_Skreddatabas_ver2.zip"
+    enabled: true
+    output_name: "sgi_skred"
+    format: "shapefile_zip"
+
+  - name: "SKS Naturvärden"
+    authority: "SKS"
+    type: "http"
+    url: "https://geodpags.skogsstyrelsen.se/geodataport/data/sksNaturvarden_gpkg.zip"
+    enabled: true
+    output_name: "sks_naturvarden"
+    format: "gpkg_zip"
+
+  - name: "SVK Stamnät"
+    authority: "SVK"
+    type: "http"
+    url: "https://gis-services.metria.se/svkfeed/filer/SVK_STAMNAT.zip"
+    enabled: true
+    output_name: "svk_stamnat"
+    format: "shapefile_zip"
+
+  # ---------------------------------------------------------------------------
+  # ATOM FEEDS
+  # ---------------------------------------------------------------------------
+  - name: "LST Miljöriskområde"
+    authority: "LST"
+    type: "atom"
+    url: "https://ext-dokument.lansstyrelsen.se/gemensamt/geodata/ATOM/ATOM_lst.LST_Miljoriskomrade.xml"
+    enabled: true
+    output_name: "lst_miljoriskomrade"
+    format: "gpkg"
+
+  - name: "LST Vindkraftskollen Vindkraftverk"
+    authority: "LST"
+    type: "atom"
+    url: "https://ext-dokument.lansstyrelsen.se/gemensamt/geodata/ATOM/ATOM_lst.vbk_vindkraftverk.xml"
+    enabled: true
+    output_name: "lst_vindkraftverk"
+    format: "gpkg"
